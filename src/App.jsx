@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
 import { audioEngine } from './utils/audioEngine';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
@@ -13,6 +14,9 @@ import Footer from './components/Footer';
 gsap.registerPlugin(ScrollTrigger);
 
 export default function App() {
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('itzfizz_theme') || 'dark';
+  });
   const [isMuted, setIsMuted] = useState(true);
   const [isPlayingAuto, setIsPlayingAuto] = useState(false);
   const [carColor, setCarColor] = useState('orange');
@@ -26,7 +30,50 @@ export default function App() {
     throttle: 0
   });
 
+  const lenisRef = useRef(null);
   const autoCruiseTween = useRef(null);
+
+  // Sync theme with DOM and localStorage
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('itzfizz_theme', theme);
+  }, [theme]);
+
+  // Toggle Theme Handler
+  const handleToggleTheme = useCallback(() => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  // Initialize Lenis Smooth Scroll Engine
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 1.4,
+    });
+    lenisRef.current = lenis;
+
+    // Sync Lenis with GSAP ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update);
+
+    const updateLenis = (time) => {
+      lenis.raf(time * 1000);
+    };
+
+    gsap.ticker.add(updateLenis);
+    gsap.ticker.lagSmoothing(0);
+
+    return () => {
+      gsap.ticker.remove(updateLenis);
+      lenis.destroy();
+    };
+  }, []);
 
   // Audio Toggle
   const handleToggleMute = useCallback(() => {
@@ -49,7 +96,11 @@ export default function App() {
       autoCruiseTween.current.kill();
       setIsPlayingAuto(false);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { duration: 1.2 });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, []);
 
   // Auto Cruise Animation
@@ -63,7 +114,6 @@ export default function App() {
     }
 
     setIsPlayingAuto(true);
-    // Unmute audio for immersive auto cruise if desired
     if (isMuted) {
       setIsMuted(false);
       audioEngine.setMuted(false);
@@ -71,38 +121,52 @@ export default function App() {
 
     const maxScroll = window.innerHeight * 2.4;
     const currentScroll = window.scrollY;
-
-    // Smooth cruise from current scroll to end of hero track
     const target = currentScroll >= maxScroll ? 0 : maxScroll;
 
-    const scrollObj = { y: window.scrollY };
-    autoCruiseTween.current = gsap.to(scrollObj, {
-      y: target,
-      duration: 6.5,
-      ease: 'power2.inOut',
-      onUpdate: () => {
-        window.scrollTo(0, scrollObj.y);
-      },
-      onComplete: () => {
-        setIsPlayingAuto(false);
-      }
-    });
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(target, {
+        duration: 6.0,
+        onComplete: () => {
+          setIsPlayingAuto(false);
+        }
+      });
+    } else {
+      const scrollObj = { y: window.scrollY };
+      autoCruiseTween.current = gsap.to(scrollObj, {
+        y: target,
+        duration: 6.0,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          window.scrollTo(0, scrollObj.y);
+        },
+        onComplete: () => {
+          setIsPlayingAuto(false);
+        }
+      });
+    }
   }, [isPlayingAuto, isMuted]);
 
   // Scrub Slider Controller
   const handleScrubProgress = useCallback((fraction) => {
     const maxScroll = window.innerHeight * 2.4;
-    window.scrollTo({
-      top: fraction * maxScroll,
-      behavior: 'auto'
-    });
+    const targetY = fraction * maxScroll;
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(targetY, { immediate: true });
+    } else {
+      window.scrollTo({
+        top: targetY,
+        behavior: 'auto'
+      });
+    }
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0b0c10] text-[#f8fafc] relative font-sans selection:bg-[#45db7d] selection:text-black">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0c10] text-slate-900 dark:text-[#f8fafc] relative font-sans selection:bg-[#45db7d] selection:text-black transition-colors duration-300">
       
       {/* Top Fixed Navbar */}
       <Navbar
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         onAutoPlay={handleAutoPlay}
@@ -114,13 +178,15 @@ export default function App() {
       <main className="relative">
         {/* Core Hero Section (Scroll-driven supercar animation) */}
         <HeroSection
+          theme={theme}
           onScrollTelemetry={handleScrollTelemetry}
           carColor={carColor}
           scrubSmoothness={scrubSmoothness}
         />
 
-        {/* Cockpit HUD Fixed Overlay during hero section */}
+        {/* Cockpit HUD Floating Overlay */}
         <TelemetryHUD
+          theme={theme}
           speed={telemetry.speed}
           gear={telemetry.gear}
           rpm={telemetry.rpm}
@@ -129,6 +195,7 @@ export default function App() {
 
         {/* Interactive Controls & Customization */}
         <InteractiveControls
+          theme={theme}
           carColor={carColor}
           onSelectColor={setCarColor}
           scrubSmoothness={scrubSmoothness}
@@ -138,14 +205,14 @@ export default function App() {
         />
 
         {/* Engineering & Architecture Breakdown */}
-        <ArchitectureSection />
+        <ArchitectureSection theme={theme} />
 
         {/* Performance Benchmarks & Tech Stack */}
-        <PerformanceSection />
+        <PerformanceSection theme={theme} />
       </main>
 
       {/* Footer with Assignment Details */}
-      <Footer onResetScroll={handleResetScroll} />
+      <Footer theme={theme} onResetScroll={handleResetScroll} />
 
     </div>
   );
