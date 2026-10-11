@@ -5,7 +5,6 @@ import Lenis from 'lenis';
 import { audioEngine } from './utils/audioEngine';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
-import TelemetryHUD from './components/TelemetryHUD';
 import InteractiveControls from './components/InteractiveControls';
 import ArchitectureSection from './components/ArchitectureSection';
 import PerformanceSection from './components/PerformanceSection';
@@ -184,14 +183,6 @@ export default function App() {
           scrubSmoothness={scrubSmoothness}
         />
 
-        {/* Cockpit HUD Floating Overlay */}
-        <TelemetryHUD
-          theme={theme}
-          speed={telemetry.speed}
-          gear={telemetry.gear}
-          rpm={telemetry.rpm}
-          progress={telemetry.progress}
-        />
 
         {/* Interactive Controls & Customization */}
         <InteractiveControls

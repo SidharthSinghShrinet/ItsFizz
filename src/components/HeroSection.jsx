@@ -7,6 +7,7 @@ import {
   Zap, 
   Smile 
 } from 'lucide-react';
+import TelemetryHUD from './TelemetryHUD';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -45,7 +46,14 @@ export default function HeroSection({
   const metricsContainerRef = useRef(null);
   const cardsRef = useRef([]);
 
-  // Store whether each letter is currently passed by the car
+  // Telemetry state for integrated cockpit HUD
+  const [telemetry, setTelemetry] = useState({
+    speed: 0,
+    gear: 'N',
+    rpm: 1000
+  });
+
+  // Track which letters have been passed by the car
   const passedLettersRef = useRef(new Array(HEADLINE_LETTERS.length).fill(false));
 
   // Active status of each metric box based on scroll progress
@@ -67,7 +75,7 @@ export default function HeroSection({
     }
   }, [carColor]);
 
-  // Apply letter style helper based on current theme and passed state
+  // Apply letter style helper
   const styleLetter = (el, isPassed, darkMode) => {
     if (!el) return;
     if (isPassed) {
@@ -88,7 +96,7 @@ export default function HeroSection({
     }
   };
 
-  // Separate effect: Update letter styles whenever theme changes without touching ScrollTrigger!
+  // Re-style letters immediately when theme changes without disturbing GSAP ScrollTrigger
   useEffect(() => {
     const letterEls = lettersRef.current.filter(Boolean);
     letterEls.forEach((el, idx) => {
@@ -96,7 +104,7 @@ export default function HeroSection({
     });
   }, [isDark]);
 
-  // Main ScrollTrigger & GSAP Timeline setup (DOES NOT DEPEND ON THEME)
+  // GSAP ScrollTrigger timeline setup
   useEffect(() => {
     const section = sectionRef.current;
     const track = trackRef.current;
@@ -114,7 +122,7 @@ export default function HeroSection({
         letterEls,
         { opacity: 0, y: 25, scale: 0.9, filter: 'blur(4px)' },
         {
-          opacity: 1, // Let styleLetter set the exact opacity
+          opacity: 1,
           y: 0,
           scale: 1,
           filter: 'blur(0px)',
@@ -199,7 +207,7 @@ export default function HeroSection({
           const carFront = currentX + (carW * 0.72);
           gsap.set(trail, { width: Math.max(0, carFront), force3D: true });
 
-          // Letter ignition tracking
+          // Letter ignition
           letterEls.forEach((el, idx) => {
             const letterX = calculatedPositions[idx];
             const isPassed = carFront >= letterX;
@@ -239,6 +247,8 @@ export default function HeroSection({
 
           const rpm = Math.round(1000 + (throttle * 7200));
 
+          setTelemetry({ speed, gear, rpm });
+
           if (onScrollTelemetry) {
             onScrollTelemetry({ speed, gear, rpm, progress, throttle });
           }
@@ -254,12 +264,12 @@ export default function HeroSection({
   }, [scrubSmoothness, onScrollTelemetry]);
 
   return (
-    <div ref={sectionRef} className="relative w-full h-[320vh] bg-slate-100 dark:bg-[#0b0c10] transition-colors duration-300">
+    <div ref={sectionRef} className="relative w-full h-[320vh] bg-slate-50 dark:bg-[#0b0c10] transition-colors duration-300">
       
       {/* Pinned Stage Container (Managed cleanly by GSAP ScrollTrigger) */}
       <div 
         ref={trackRef} 
-        className="relative h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-100 dark:bg-[#0b0c10] select-none transition-colors duration-300"
+        className="relative h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50 dark:bg-[#0b0c10] select-none transition-colors duration-300"
       >
         
         {/* Ambient Grid Background */}
@@ -270,16 +280,23 @@ export default function HeroSection({
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#def54f]/15 dark:bg-[#def54f]/10 rounded-full blur-3xl pointer-events-none z-0" />
 
         {/* ========================================================= */}
-        {/* TOP SECTION: Headline & Mission Statement (Above Fold)     */}
+        {/* 1. TOP SECTION: Headline & Mission Statement (Above Fold) */}
         {/* ========================================================= */}
-        <div className="relative z-10 pt-16 sm:pt-20 md:pt-22 px-3 sm:px-6 max-w-7xl mx-auto w-full text-center">
+        <div className="relative z-10 pt-20 sm:pt-24 px-3 sm:px-6 max-w-7xl mx-auto w-full text-center">
           
           {/* Subtitle Badge */}
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-0.5 rounded-full bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 text-[10px] sm:text-[11px] font-mono text-slate-800 dark:text-slate-300 mb-1 sm:mb-2 shadow-xs">
+          <div 
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-mono mb-1.5 sm:mb-2 shadow-xs transition-colors"
+            style={{
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
+              color: isDark ? '#e2e8f0' : '#0f172a'
+            }}
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-[#16a34a] dark:bg-[#45db7d] animate-ping" />
             <span className="text-[#15803d] dark:text-[#45db7d] font-bold">NEXT-GEN INTERACTION</span>
             <span className="text-slate-400 dark:text-slate-500">•</span>
-            <span>SCROLL-DRIVEN ARCHITECTURE</span>
+            <span className="font-semibold">SCROLL-DRIVEN ARCHITECTURE</span>
           </div>
 
           {/* Letter-Spaced Headline (High Contrast Single Line) */}
@@ -304,19 +321,22 @@ export default function HeroSection({
             ))}
           </h1>
 
-          <p className="text-[10px] sm:text-xs md:text-sm text-slate-700 dark:text-slate-400 font-mono max-w-xl mx-auto font-medium">
+          <p 
+            className="text-[10px] sm:text-xs md:text-sm font-mono max-w-xl mx-auto font-semibold transition-colors"
+            style={{ color: isDark ? '#94a3b8' : '#334155' }}
+          >
             Scroll smoothly to ignite the telemetry engine and unroll the kinetic trajectory.
           </p>
         </div>
 
         {/* ========================================================= */}
-        {/* MIDDLE SECTION: Road Track, McLaren Supercar, & Trail     */}
+        {/* 2. MIDDLE SECTION: Road Track, McLaren Supercar, & Trail */}
         {/* ========================================================= */}
         <div className="relative z-10 w-full my-auto py-1">
           
           <div 
             ref={roadRef} 
-            className="relative w-full h-[115px] sm:h-[145px] md:h-[170px] road-surface border-y-2 border-slate-700 dark:border-white/15 shadow-2xl flex items-center overflow-hidden"
+            className="relative w-full h-[115px] sm:h-[145px] md:h-[165px] road-surface border-y-2 border-slate-700 dark:border-white/15 shadow-2xl flex items-center overflow-hidden"
           >
             {/* Top Curbs */}
             <div className="absolute top-0 left-0 right-0 h-2 sm:h-2.5 road-curb-top opacity-90 shadow-xs" />
@@ -380,7 +400,10 @@ export default function HeroSection({
           </div>
 
           {/* Distance Ticks */}
-          <div className="hidden sm:flex justify-between items-center max-w-7xl mx-auto px-6 mt-1.5 text-[9px] font-mono text-slate-600 dark:text-slate-500 font-bold">
+          <div 
+            className="hidden sm:flex justify-between items-center max-w-7xl mx-auto px-6 mt-1 text-[9px] font-mono font-bold"
+            style={{ color: isDark ? '#94a3b8' : '#475569' }}
+          >
             <span>GRID START /// 000M</span>
             <span>SECTOR 1 /// APEX</span>
             <span>SECTOR 2 /// NITROUS</span>
@@ -390,11 +413,23 @@ export default function HeroSection({
         </div>
 
         {/* ========================================================= */}
-        {/* BOTTOM SECTION: Impact Metrics & Statistics Cards         */}
+        {/* 3. INTEGRATED COCKPIT TELEMETRY STRIP (ZERO OVERLAP!)     */}
+        {/* ========================================================= */}
+        <div className="relative z-10 px-3 sm:px-6 w-full my-1">
+          <TelemetryHUD
+            theme={theme}
+            speed={telemetry.speed}
+            gear={telemetry.gear}
+            rpm={telemetry.rpm}
+          />
+        </div>
+
+        {/* ========================================================= */}
+        {/* 4. BOTTOM SECTION: Impact Metrics & Statistics Cards      */}
         {/* ========================================================= */}
         <div 
           ref={metricsContainerRef}
-          className="relative z-10 pb-4 sm:pb-6 md:pb-8 px-3 sm:px-6 max-w-7xl mx-auto w-full"
+          className="relative z-10 pb-3 sm:pb-5 px-3 sm:px-6 max-w-7xl mx-auto w-full"
         >
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -402,24 +437,54 @@ export default function HeroSection({
             {/* Metric Box 1 */}
             <div
               ref={(el) => (cardsRef.current[0] = el)}
-              className={`p-3 sm:p-4 rounded-xl transition-all duration-500 border ${
-                activeCards[0]
-                  ? 'bg-amber-50 dark:bg-[#def54f]/15 border-amber-500 dark:border-[#def54f] shadow-lg shadow-amber-500/20 scale-102 ring-2 ring-amber-400/30'
-                  : 'bg-white dark:bg-[#121622]/85 border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 shadow-xs'
-              }`}
+              className="p-3 sm:p-3.5 rounded-xl transition-all duration-300 border shadow-md"
+              style={{
+                backgroundColor: activeCards[0]
+                  ? (isDark ? 'rgba(222, 245, 79, 0.15)' : '#fefce8')
+                  : (isDark ? 'rgba(18, 22, 34, 0.9)' : '#ffffff'),
+                borderColor: activeCards[0]
+                  ? (isDark ? '#def54f' : '#eab308')
+                  : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1')
+              }}
             >
               <div className="flex items-center justify-between mb-1">
-                <div className={`p-1.5 rounded-lg ${activeCards[0] ? 'bg-amber-600 text-white dark:bg-[#def54f] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-amber-700 dark:text-[#def54f]'}`}>
+                <div 
+                  className="p-1 rounded-lg"
+                  style={{
+                    backgroundColor: activeCards[0]
+                      ? (isDark ? '#def54f' : '#ca8a04')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[0]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#def54f' : '#b45309')
+                  }}
+                >
                   <TrendingUp className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${activeCards[0] ? 'bg-amber-600 text-white dark:bg-[#def54f] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'}`}>
+                <span 
+                  className="text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: activeCards[0]
+                      ? (isDark ? '#def54f' : '#ca8a04')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[0]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#94a3b8' : '#475569')
+                  }}
+                >
                   {activeCards[0] ? 'ACTIVE' : 'SECTOR 1'}
                 </span>
               </div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white flex items-baseline gap-1">
-                <span className="text-amber-600 dark:text-[#def54f]">58%</span>
+              <div 
+                className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight flex items-baseline gap-1"
+                style={{ color: isDark ? '#def54f' : '#b45309' }}
+              >
+                58%
               </div>
-              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+              <p 
+                className="mt-0.5 text-[10px] sm:text-[11px] font-semibold leading-snug"
+                style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}
+              >
                 Increase in pick up point use across global logistics hubs
               </p>
             </div>
@@ -427,24 +492,54 @@ export default function HeroSection({
             {/* Metric Box 2 */}
             <div
               ref={(el) => (cardsRef.current[1] = el)}
-              className={`p-3 sm:p-4 rounded-xl transition-all duration-500 border ${
-                activeCards[1]
-                  ? 'bg-sky-50 dark:bg-[#6ac9ff]/15 border-sky-500 dark:border-[#6ac9ff] shadow-lg shadow-sky-500/20 scale-102 ring-2 ring-sky-400/30'
-                  : 'bg-white dark:bg-[#121622]/85 border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 shadow-xs'
-              }`}
+              className="p-3 sm:p-3.5 rounded-xl transition-all duration-300 border shadow-md"
+              style={{
+                backgroundColor: activeCards[1]
+                  ? (isDark ? 'rgba(106, 201, 255, 0.15)' : '#f0f9ff')
+                  : (isDark ? 'rgba(18, 22, 34, 0.9)' : '#ffffff'),
+                borderColor: activeCards[1]
+                  ? (isDark ? '#6ac9ff' : '#0284c7')
+                  : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1')
+              }}
             >
               <div className="flex items-center justify-between mb-1">
-                <div className={`p-1.5 rounded-lg ${activeCards[1] ? 'bg-sky-600 text-white dark:bg-[#6ac9ff] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-sky-600 dark:text-[#6ac9ff]'}`}>
+                <div 
+                  className="p-1 rounded-lg"
+                  style={{
+                    backgroundColor: activeCards[1]
+                      ? (isDark ? '#6ac9ff' : '#0284c7')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[1]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#6ac9ff' : '#0284c7')
+                  }}
+                >
                   <PhoneOff className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${activeCards[1] ? 'bg-sky-600 text-white dark:bg-[#6ac9ff] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'}`}>
+                <span 
+                  className="text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: activeCards[1]
+                      ? (isDark ? '#6ac9ff' : '#0284c7')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[1]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#94a3b8' : '#475569')
+                  }}
+                >
                   {activeCards[1] ? 'ACTIVE' : 'SECTOR 2'}
                 </span>
               </div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white flex items-baseline gap-1">
-                <span className="text-sky-600 dark:text-[#6ac9ff]">23%</span>
+              <div 
+                className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight flex items-baseline gap-1"
+                style={{ color: isDark ? '#6ac9ff' : '#0284c7' }}
+              >
+                23%
               </div>
-              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+              <p 
+                className="mt-0.5 text-[10px] sm:text-[11px] font-semibold leading-snug"
+                style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}
+              >
                 Decrease in customer support escalation and call volumes
               </p>
             </div>
@@ -452,24 +547,54 @@ export default function HeroSection({
             {/* Metric Box 3 */}
             <div
               ref={(el) => (cardsRef.current[2] = el)}
-              className={`p-3 sm:p-4 rounded-xl transition-all duration-500 border ${
-                activeCards[2]
-                  ? 'bg-emerald-50 dark:bg-[#45db7d]/15 border-emerald-500 dark:border-[#45db7d] shadow-lg shadow-emerald-500/20 scale-102 ring-2 ring-emerald-400/30'
-                  : 'bg-white dark:bg-[#121622]/85 border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 shadow-xs'
-              }`}
+              className="p-3 sm:p-3.5 rounded-xl transition-all duration-300 border shadow-md"
+              style={{
+                backgroundColor: activeCards[2]
+                  ? (isDark ? 'rgba(69, 219, 125, 0.15)' : '#ecfdf5')
+                  : (isDark ? 'rgba(18, 22, 34, 0.9)' : '#ffffff'),
+                borderColor: activeCards[2]
+                  ? (isDark ? '#45db7d' : '#10b981')
+                  : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1')
+              }}
             >
               <div className="flex items-center justify-between mb-1">
-                <div className={`p-1.5 rounded-lg ${activeCards[2] ? 'bg-emerald-600 text-white dark:bg-[#45db7d] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-emerald-600 dark:text-[#45db7d]'}`}>
+                <div 
+                  className="p-1 rounded-lg"
+                  style={{
+                    backgroundColor: activeCards[2]
+                      ? (isDark ? '#45db7d' : '#15803d')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[2]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#45db7d' : '#15803d')
+                  }}
+                >
                   <Zap className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${activeCards[2] ? 'bg-emerald-600 text-white dark:bg-[#45db7d] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'}`}>
+                <span 
+                  className="text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: activeCards[2]
+                      ? (isDark ? '#45db7d' : '#15803d')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[2]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#94a3b8' : '#475569')
+                  }}
+                >
                   {activeCards[2] ? 'ACTIVE' : 'SECTOR 3'}
                 </span>
               </div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white flex items-baseline gap-1">
-                <span className="text-emerald-600 dark:text-[#45db7d]">27%</span>
+              <div 
+                className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight flex items-baseline gap-1"
+                style={{ color: isDark ? '#45db7d' : '#15803d' }}
+              >
+                27%
               </div>
-              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+              <p 
+                className="mt-0.5 text-[10px] sm:text-[11px] font-semibold leading-snug"
+                style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}
+              >
                 Acceleration in last-mile courier fulfillment speed
               </p>
             </div>
@@ -477,24 +602,54 @@ export default function HeroSection({
             {/* Metric Box 4 */}
             <div
               ref={(el) => (cardsRef.current[3] = el)}
-              className={`p-3 sm:p-4 rounded-xl transition-all duration-500 border ${
-                activeCards[3]
-                  ? 'bg-orange-50 dark:bg-[#fa7328]/15 border-orange-500 dark:border-[#fa7328] shadow-lg shadow-orange-500/20 scale-102 ring-2 ring-orange-400/30'
-                  : 'bg-white dark:bg-[#121622]/85 border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20 shadow-xs'
-              }`}
+              className="p-3 sm:p-3.5 rounded-xl transition-all duration-300 border shadow-md"
+              style={{
+                backgroundColor: activeCards[3]
+                  ? (isDark ? 'rgba(250, 115, 40, 0.15)' : '#fff7ed')
+                  : (isDark ? 'rgba(18, 22, 34, 0.9)' : '#ffffff'),
+                borderColor: activeCards[3]
+                  ? (isDark ? '#fa7328' : '#f97316')
+                  : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1')
+              }}
             >
               <div className="flex items-center justify-between mb-1">
-                <div className={`p-1.5 rounded-lg ${activeCards[3] ? 'bg-orange-600 text-white dark:bg-[#fa7328] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-orange-600 dark:text-[#fa7328]'}`}>
+                <div 
+                  className="p-1 rounded-lg"
+                  style={{
+                    backgroundColor: activeCards[3]
+                      ? (isDark ? '#fa7328' : '#c2410c')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[3]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#fa7328' : '#c2410c')
+                  }}
+                >
                   <Smile className="w-3.5 h-3.5" />
                 </div>
-                <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full ${activeCards[3] ? 'bg-orange-600 text-white dark:bg-[#fa7328] dark:text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'}`}>
+                <span 
+                  className="text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: activeCards[3]
+                      ? (isDark ? '#fa7328' : '#c2410c')
+                      : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                    color: activeCards[3]
+                      ? (isDark ? '#000000' : '#ffffff')
+                      : (isDark ? '#94a3b8' : '#475569')
+                  }}
+                >
                   {activeCards[3] ? 'ACTIVE' : 'SECTOR 4'}
                 </span>
               </div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight text-slate-900 dark:text-white flex items-baseline gap-1">
-                <span className="text-orange-600 dark:text-[#fa7328]">40%</span>
+              <div 
+                className="text-xl sm:text-2xl md:text-3xl font-black font-mono tracking-tight flex items-baseline gap-1"
+                style={{ color: isDark ? '#fa7328' : '#c2410c' }}
+              >
+                40%
               </div>
-              <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-700 dark:text-slate-300 font-semibold leading-snug">
+              <p 
+                className="mt-0.5 text-[10px] sm:text-[11px] font-semibold leading-snug"
+                style={{ color: isDark ? '#cbd5e1' : '#1e293b' }}
+              >
                 Net gain in verified user satisfaction and digital retention
               </p>
             </div>
@@ -502,7 +657,10 @@ export default function HeroSection({
           </div>
 
           {/* Scroll Prompt Notice */}
-          <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-2 sm:mt-2.5 text-slate-700 dark:text-slate-400 text-[10px] sm:text-[11px] font-mono font-semibold">
+          <div 
+            className="flex justify-center items-center gap-1.5 sm:gap-2 mt-2 text-[10px] sm:text-[11px] font-mono font-bold transition-colors"
+            style={{ color: isDark ? '#94a3b8' : '#475569' }}
+          >
             <span className="animate-bounce">↓</span>
             <span>SCROLL DOWN TO ACCELERATE THROUGH THE TRAJECTORY</span>
             <span className="animate-bounce">↓</span>
