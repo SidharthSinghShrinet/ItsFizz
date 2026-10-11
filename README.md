@@ -23,11 +23,11 @@
 
 ## 🔗 Submission Links
 
-- **Live Demo Webpage:** `[Your GitHub Pages URL will go here]` *(e.g. `https://<your-username>.github.io/ItzFizz/`)*
-- **GitHub Repository:** `[Your GitHub Repository URL will go here]` *(e.g. `https://github.com/<your-username>/ItzFizz`)*
+- **Live Demo Webpage:** [https://sidharthsinghshrinet.github.io/ItsFizz/](https://sidharthsinghshrinet.github.io/ItsFizz/)
+- **GitHub Repository:** [https://github.com/SidharthSinghShrinet/ItsFizz](https://github.com/SidharthSinghShrinet/ItsFizz)
 - **Original Assignment Reference:** [car-scroll-animation](https://paraschaturvedi.github.io/car-scroll-animation)
 
-*(See [Deployment Instructions](#-hosting--deployment-instructions) to publish live to GitHub Pages in under 2 minutes!)*
+*(Configured with automated GitHub Actions deployment to GitHub Pages)*
 
 ---
 
@@ -199,20 +199,19 @@ This repository includes a pre-configured GitHub Actions workflow (`.github/work
 
 1. **Push your code to GitHub:**
    ```bash
-   git init
    git add .
    git commit -m "feat: complete scroll-driven supercar hero animation"
    git branch -M main
-   git remote add origin https://github.com/<your-username>/ItzFizz.git
+   git remote add origin https://github.com/SidharthSinghShrinet/ItsFizz.git
    git push -u origin main
    ```
 
 2. **Enable GitHub Pages:**
-   - Go to your repository on GitHub.
+   - Go to your repository on GitHub: `https://github.com/SidharthSinghShrinet/ItsFizz`
    - Navigate to **Settings** > **Pages**.
    - Under **Build and deployment** > **Source**, select **GitHub Actions**.
    - The deployment will run automatically and publish your site at:
-     `https://<your-username>.github.io/ItzFizz/`
+     `https://sidharthsinghshrinet.github.io/ItsFizz/`
 
 ### Method 2: Vercel (1-Click Deployment)
 
