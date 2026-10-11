@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Outfit', sans-serif;
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #0b0c10;
+    color: #f8fafc;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Custom Utilities & Cyber/Automotive Effects */
+.glass-panel {
+  background: rgba(18, 22, 34, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  border-color: rgba(69, 219, 125, 0.4);
+  box-shadow: 0 10px 30px -10px rgba(69, 219, 125, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Neon Glows */
+.glow-green {
+  box-shadow: 0 0 25px rgba(69, 219, 125, 0.5), inset 0 0 15px rgba(69, 219, 125, 0.3);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 20px rgba(69, 219, 125, 0.8), 0 0 40px rgba(69, 219, 125, 0.4);
+}
+
+.text-glow-amber {
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
+}
+
+/* Road Texture & Striping */
+.road-surface {
+  background: radial-gradient(circle at 50% 50%, #1c1d24 0%, #121318 100%);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.road-curb-top {
+  background: repeating-linear-gradient(
+    90deg,
+    #ef4444 0px,
+    #ef4444 40px,
+    #ffffff 40px,
+    #ffffff 80px
+  );
+}
+
+.road-curb-bottom {
+  background: repeating-linear-gradient(
+    90deg,
+    #ef4444 0px,
+    #ef4444 40px,
+    #ffffff 40px,
+    #ffffff 80px
+  );
+}
+
+/* Asphalt Line */
+.asphalt-line {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.45) 0px,
+    rgba(255, 255, 255, 0.45) 40px,
+    transparent 40px,
+    transparent 80px
+  );
+}
+
+/* Grid Background */
+.cyber-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+
+/* Pulse Beacon */
+@keyframes beacon-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 12px #45db7d); }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.animate-beacon {
+  animation: beacon-pulse 2.5s infinite ease-in-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0c10;
+}
+::-webkit-scrollbar-thumb {
+  background: #232733;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #45db7d;
+}
