@@ -125,7 +125,7 @@ export default function TelemetryHUD({ speed, gear, rpm, theme = 'dark' }) {
             className="text-[11px] sm:text-xs font-mono font-black"
             style={{ color: isDark ? '#ffffff' : '#0f172a' }}
           >
-            GSAP + LENIS
+            GSAP 3.12 SCRUB
           </div>
         </div>
       </div>

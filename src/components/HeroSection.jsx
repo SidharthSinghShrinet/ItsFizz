@@ -96,7 +96,7 @@ export default function HeroSection({
     }
   };
 
-  // Re-style letters immediately when theme changes without disturbing GSAP ScrollTrigger
+  // Re-style letters immediately when theme changes
   useEffect(() => {
     const letterEls = lettersRef.current.filter(Boolean);
     letterEls.forEach((el, idx) => {
@@ -104,17 +104,16 @@ export default function HeroSection({
     });
   }, [isDark]);
 
-  // GSAP ScrollTrigger timeline setup
+  // GSAP ScrollTrigger timeline setup using native CSS sticky track
   useEffect(() => {
     const section = sectionRef.current;
-    const track = trackRef.current;
     const road = roadRef.current;
     const car = carRef.current;
     const trail = trailRef.current;
     const letterEls = lettersRef.current.filter(Boolean);
     const cardEls = cardsRef.current.filter(Boolean);
 
-    if (!section || !track || !road || !car) return;
+    if (!section || !road || !car) return;
 
     // 1. Initial entrance animations
     const introCtx = gsap.context(() => {
@@ -188,70 +187,65 @@ export default function HeroSection({
     let lastTime = performance.now();
     let lastScrollY = window.scrollY;
 
-    const scrollTimeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: 'top top',
-        end: '+=240%',
-        pin: track,
-        scrub: scrubSmoothness,
-        invalidateOnRefresh: true,
-        anticipatePin: 1,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          const currentX = progress * calculatedEndX;
+    const scrollTriggerInstance = ScrollTrigger.create({
+      trigger: section,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: scrubSmoothness,
+      onUpdate: (self) => {
+        const progress = self.progress;
+        const currentX = progress * calculatedEndX;
 
-          // GPU transform
-          gsap.set(car, { x: currentX, force3D: true });
+        // GPU transform
+        gsap.set(car, { x: currentX, force3D: true });
 
-          const carFront = currentX + (carW * 0.72);
-          gsap.set(trail, { width: Math.max(0, carFront), force3D: true });
+        const carFront = currentX + (carW * 0.72);
+        gsap.set(trail, { width: Math.max(0, carFront), force3D: true });
 
-          // Letter ignition
-          letterEls.forEach((el, idx) => {
-            const letterX = calculatedPositions[idx];
-            const isPassed = carFront >= letterX;
-            passedLettersRef.current[idx] = isPassed;
-            styleLetter(el, isPassed, document.documentElement.classList.contains('dark'));
-          });
+        // Letter ignition
+        letterEls.forEach((el, idx) => {
+          const letterX = calculatedPositions[idx];
+          const isPassed = carFront >= letterX;
+          passedLettersRef.current[idx] = isPassed;
+          styleLetter(el, isPassed, document.documentElement.classList.contains('dark'));
+        });
 
-          // Milestone triggers
-          setActiveCards([
-            progress >= 0.15,
-            progress >= 0.38,
-            progress >= 0.62,
-            progress >= 0.85
-          ]);
+        // Milestone triggers
+        setActiveCards([
+          progress >= 0.15,
+          progress >= 0.38,
+          progress >= 0.62,
+          progress >= 0.85
+        ]);
 
-          // Telemetry
-          const now = performance.now();
-          const dt = Math.max((now - lastTime) / 1000, 0.016);
-          const scrollDelta = Math.abs(window.scrollY - lastScrollY);
-          lastTime = now;
-          lastScrollY = window.scrollY;
+        // Telemetry
+        const now = performance.now();
+        const dt = Math.max((now - lastTime) / 1000, 0.016);
+        const scrollDelta = Math.abs(window.scrollY - lastScrollY);
+        lastTime = now;
+        lastScrollY = window.scrollY;
 
-          const rawSpeed = (scrollDelta / dt) * 0.18;
-          const speed = Math.min(320, Math.max(0, rawSpeed + (progress > 0.03 ? 28 : 0)));
-          const throttle = Math.min(1, speed / 320);
+        const rawSpeed = (scrollDelta / dt) * 0.18;
+        const speed = Math.min(320, Math.max(0, rawSpeed + (progress > 0.03 ? 28 : 0)));
+        const throttle = Math.min(1, speed / 320);
 
-          let gear = 'N';
-          if (speed > 5) {
-            if (speed < 50) gear = '1';
-            else if (speed < 100) gear = '2';
-            else if (speed < 155) gear = '3';
-            else if (speed < 210) gear = '4';
-            else if (speed < 265) gear = '5';
-            else if (speed < 305) gear = '6';
-            else gear = '7';
-          }
+        let gear = 'N';
+        if (speed > 5) {
+          if (speed < 50) gear = '1';
+          else if (speed < 100) gear = '2';
+          else if (speed < 155) gear = '3';
+          else if (speed < 210) gear = '4';
+          else if (speed < 265) gear = '5';
+          else if (speed < 305) gear = '6';
+          else gear = '7';
+        }
 
-          const rpm = Math.round(1000 + (throttle * 7200));
+        const rpm = Math.round(1000 + (throttle * 7200));
 
-          setTelemetry({ speed, gear, rpm });
+        setTelemetry({ speed, gear, rpm });
 
-          if (onScrollTelemetry) {
-            onScrollTelemetry({ speed, gear, rpm, progress, throttle });
-          }
+        if (onScrollTelemetry) {
+          onScrollTelemetry({ speed, gear, rpm, progress, throttle });
         }
       }
     });
@@ -259,17 +253,17 @@ export default function HeroSection({
     return () => {
       window.removeEventListener('resize', handleResize);
       introCtx.revert();
-      scrollTimeline.kill();
+      scrollTriggerInstance.kill();
     };
   }, [scrubSmoothness, onScrollTelemetry]);
 
   return (
-    <div ref={sectionRef} className="relative w-full h-[320vh] bg-slate-50 dark:bg-[#0b0c10] transition-colors duration-300">
+    <div ref={sectionRef} className="relative w-full h-[250vh] bg-slate-50 dark:bg-[#0b0c10] transition-colors duration-200">
       
-      {/* Pinned Stage Container (Managed cleanly by GSAP ScrollTrigger) */}
+      {/* Native CSS Sticky Viewport Container - 100% visible from pixel 0 */}
       <div 
         ref={trackRef} 
-        className="relative h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50 dark:bg-[#0b0c10] select-none transition-colors duration-300"
+        className="sticky top-0 h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50 dark:bg-[#0b0c10] select-none transition-colors duration-200"
       >
         
         {/* Ambient Grid Background */}
@@ -282,11 +276,11 @@ export default function HeroSection({
         {/* ========================================================= */}
         {/* 1. TOP SECTION: Headline & Mission Statement (Above Fold) */}
         {/* ========================================================= */}
-        <div className="relative z-10 pt-20 sm:pt-24 px-3 sm:px-6 max-w-7xl mx-auto w-full text-center">
+        <div className="relative z-10 pt-16 sm:pt-20 md:pt-22 px-3 sm:px-6 max-w-7xl mx-auto w-full text-center">
           
           {/* Subtitle Badge */}
           <div 
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-mono mb-1.5 sm:mb-2 shadow-xs transition-colors"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1 rounded-full border text-[10px] sm:text-[11px] font-mono mb-1 sm:mb-2 shadow-xs transition-colors"
             style={{
               backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
               borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',

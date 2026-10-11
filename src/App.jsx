@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from 'lenis';
 import { audioEngine } from './utils/audioEngine';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
@@ -29,8 +28,15 @@ export default function App() {
     throttle: 0
   });
 
-  const lenisRef = useRef(null);
   const autoCruiseTween = useRef(null);
+
+  // Always reset scroll to top on refresh
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, []);
 
   // Sync theme with DOM and localStorage
   useEffect(() => {
@@ -46,32 +52,6 @@ export default function App() {
   // Toggle Theme Handler
   const handleToggleTheme = useCallback(() => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  }, []);
-
-  // Initialize Lenis Smooth Scroll Engine
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-      touchMultiplier: 1.4,
-    });
-    lenisRef.current = lenis;
-
-    // Sync Lenis with GSAP ScrollTrigger
-    lenis.on('scroll', ScrollTrigger.update);
-
-    const updateLenis = (time) => {
-      lenis.raf(time * 1000);
-    };
-
-    gsap.ticker.add(updateLenis);
-    gsap.ticker.lagSmoothing(0);
-
-    return () => {
-      gsap.ticker.remove(updateLenis);
-      lenis.destroy();
-    };
   }, []);
 
   // Audio Toggle
@@ -95,11 +75,7 @@ export default function App() {
       autoCruiseTween.current.kill();
       setIsPlayingAuto(false);
     }
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(0, { duration: 1.2 });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   // Auto Cruise Animation
@@ -118,49 +94,36 @@ export default function App() {
       audioEngine.setMuted(false);
     }
 
-    const maxScroll = window.innerHeight * 2.4;
+    const maxScroll = window.innerHeight * 2.2;
     const currentScroll = window.scrollY;
     const target = currentScroll >= maxScroll ? 0 : maxScroll;
 
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(target, {
-        duration: 6.0,
-        onComplete: () => {
-          setIsPlayingAuto(false);
-        }
-      });
-    } else {
-      const scrollObj = { y: window.scrollY };
-      autoCruiseTween.current = gsap.to(scrollObj, {
-        y: target,
-        duration: 6.0,
-        ease: 'power2.inOut',
-        onUpdate: () => {
-          window.scrollTo(0, scrollObj.y);
-        },
-        onComplete: () => {
-          setIsPlayingAuto(false);
-        }
-      });
-    }
+    const scrollObj = { y: window.scrollY };
+    autoCruiseTween.current = gsap.to(scrollObj, {
+      y: target,
+      duration: 6.0,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        window.scrollTo(0, scrollObj.y);
+      },
+      onComplete: () => {
+        setIsPlayingAuto(false);
+      }
+    });
   }, [isPlayingAuto, isMuted]);
 
   // Scrub Slider Controller
   const handleScrubProgress = useCallback((fraction) => {
-    const maxScroll = window.innerHeight * 2.4;
+    const maxScroll = window.innerHeight * 2.2;
     const targetY = fraction * maxScroll;
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(targetY, { immediate: true });
-    } else {
-      window.scrollTo({
-        top: targetY,
-        behavior: 'auto'
-      });
-    }
+    window.scrollTo({
+      top: targetY,
+      behavior: 'auto'
+    });
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0c10] text-slate-900 dark:text-[#f8fafc] relative font-sans selection:bg-[#45db7d] selection:text-black transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0c10] text-slate-900 dark:text-[#f8fafc] relative font-sans selection:bg-[#45db7d] selection:text-black transition-colors duration-200">
       
       {/* Top Fixed Navbar */}
       <Navbar
@@ -182,7 +145,6 @@ export default function App() {
           carColor={carColor}
           scrubSmoothness={scrubSmoothness}
         />
-
 
         {/* Interactive Controls & Customization */}
         <InteractiveControls
